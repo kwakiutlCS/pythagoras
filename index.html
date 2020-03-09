@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Geometric Demonstration Pythagorean Theorem</title>
+	<script type="text/javascript" src="data/paper.js"></script>
+	<script type="text/javascript" src="data/jquery.js"></script>
+		
+	<script type="text/paperscript" canvas="canvas">
+	  function Triangle(pos, color, orientation, size, ratio ) {
+    this.pos = pos;
+    this.orientation = typeof orientation === "undefined" ? "right" : orientation;
+    this.color = typeof color === "undefined" ? "red" : color;
+    this.size = typeof size === "undefined" ? 150 : size;
+    this.ratio = typeof ratio === "undefined" ? 3. : ratio;
+
+    this.path = this.draw();
+    this.moving = false;
+    this.lock = false;
+}
+
+Triangle.prototype.draw = function() {
+    if (this.orientation === "right") {
+	var x = new Point(this.size, 0);
+	var y = new Point(this.size, this.size/this.ratio);
+    }
+    else if (this.orientation === "left") {
+	var x = new Point(-this.size, 0);
+	var y = new Point(-this.size, -this.size/this.ratio);
+    }
+    else if (this.orientation === "down") {
+	var x = new Point(0, this.size);
+	var y = new Point(-this.size/this.ratio, this.size);
+    }
+    else if (this.orientation === "up") {
+	var x = new Point(0, -this.size);
+	var y = new Point(this.size/this.ratio, -this.size);
+    }
+    
+    var path = new Path();
+    path.fillColor = this.color;
+    path.strokeColor = "black";
+    path.add(this.pos);
+    path.add(this.pos+x);
+    path.add(this.pos+y);
+    path.closed = true;
+
+    return path;
+}
+
+
+Triangle.prototype.contains = function(p) {
+    var tmp = this.path.hitTest(p);
+    if (tmp) this.moving = true;
+
+    return tmp; 
+}
+
+
+var counter = 0;
+var triangles = [];
+var size = 180;
+var sq_pos = 150;
+var ratio = 2;
+var sq_size = size/ratio*(ratio+1)+2;
+var pos = new Point(800,100);
+
+var sq = new Path.Rectangle(new Rectangle(new Point(sq_pos,sq_pos), new Size(sq_size, sq_size)));
+sq.fillColor = "#88ffaa";
+sq.strokeColor = "green";
+
+var moving = false;
+var timer = false;
+
+
+var middle = new Path.Rectangle(pos, pos+new Point(size, size));
+middle.fillColor = "#cc9955";
+middle.strokeColor = "black";
+var small = new Path.Rectangle(pos+new Point(-size/ratio,size), pos+new Point(0, size*(ratio+1)/ratio));
+small.fillColor = "#cc9955";
+small.strokeColor = "black";
+var big = new Path();
+big.add(pos);
+big.add(pos+new Point(-size/ratio, size));
+big.add(pos+new Point(-size*(ratio+1)/ratio, size*(ratio-1)/ratio));
+big.add(pos+new Point(-size, -size/ratio));
+
+big.closed = true;
+big.fillColor = "#9999ff";
+big.strokeColor = "blue";
+
+var anchor = new Triangle(pos, "red", "down", size, ratio);
+
+
+
+
+
+function onMouseDown(evt) {
+    
+    var tmp = project.hitTest(evt.point);
+    if (tmp && tmp.item === anchor.path) {
+	if (counter < 4) {
+	    triangles.push(new Triangle(pos, "red", "down", size, ratio));
+	    triangles[counter].moving = true;
+	    counter += 1;
+	}
+	
+    }
+    
+    for (var t in triangles) {
+	if (triangles[t].contains(evt.point)) {
+	    triangles[t].moving = true;
+	    timer = new Date().getTime();
+	    break;
+	}
+    }
+
+    	
+    
+}
+
+
+function onMouseMove(evt) {
+    var moving = false;
+    var path = false
+    for (var t in triangles) {
+	if (triangles[t].moving) {
+	    moving = triangles[t];
+	    path = moving.path;
+	}
+    }
+
+    if (moving) {
+	path.position += evt.delta;
+	
+	if (moving.lock) {
+	    for (var i in path.segments) {
+		var x = path.segments[i].point.x;
+		var y = path.segments[i].point.y;
+		
+		if (!(x > sq_pos && x < sq_pos+sq_size)) {
+		    if (x <= sq_pos) {
+			    path.position.x += (sq_pos-x)+1;
+		    }
+		    else {
+		        path.position.x -= x-sq_pos-sq_size+1;
+			    }
+		}
+		if (!(y > sq_pos && y < sq_pos+sq_size)) {
+		    if (y <= sq_pos) {
+			     path.position.y += sq_pos-y+1;
+		    }
+	            else {
+                         path.position.y -= y-sq_pos-sq_size+1;
+                    }
+		}
+		
+	    }
+	}
+	else {
+	    var inside = true;
+	    for (var i in path.segments) {
+		var x = path.segments[i].point.x;
+		var y = path.segments[i].point.y;
+		
+		if (!(x > sq_pos && x < sq_pos+sq_size && y > sq_pos && y < sq_pos+sq_size)) {
+		    inside = false;
+		    
+		}
+		
+	    }
+	    if (inside) 
+		    moving.lock = true;
+	}
+    }
+}
+
+
+function onMouseUp(evt) {
+    
+
+    for (var t in triangles) {
+	if (triangles[t].moving) {
+	    
+	    triangles[t].moving = false;
+	
+	    if (new Date().getTime() - timer < 150)
+		triangles[t].path.rotate(90);
+	}
+	    
+    }
+    
+}
+
+
+function onKeyDown(evt) {
+    if (evt.key === "g") {
+	sq.visible = !sq.visible;				       
+    }
+}
+
+        </script>
+      
+
+</head>
+<body>
+  <canvas id="canvas" width=1000 height=500></canvas>
+</body>
+</html>
